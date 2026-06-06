@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
+
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -8,6 +9,7 @@ import RoomLobby from './pages/RoomLobby';
 import DuelPage from './pages/DuelPage';
 import ResultPage from './pages/ResultPage';
 import Navbar from './components/Navbar';
+import MatchHistory from './pages/MatchHistory';  
 
 // Protected route wrapper
 const Protected = ({ children }) => {
@@ -39,6 +41,7 @@ function AppRoutes() {
         <Route path="/room/:roomId" element={<Protected><RoomLobby /></Protected>} />
         <Route path="/duel/:roomId" element={<Protected><DuelPage /></Protected>} />
         <Route path="/result/:roomId" element={<Protected><ResultPage /></Protected>} />
+        <Route path="/history" element={<Protected><MatchHistory /></Protected>} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </div>

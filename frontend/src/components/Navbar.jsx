@@ -30,6 +30,12 @@ export default function Navbar() {
               <div className="w-2 h-2 bg-green-400 rounded-full ping-slow" />
               <span className="text-gray-400 font-mono text-xs">{user.codeforcesHandle}</span>
             </div>
+            <Link
+              to="/history"
+              className="text-xs text-gray-500 hover:text-green-400 font-mono transition-colors hidden sm:block"
+            >
+              [history]
+            </Link>
             <span className="text-gray-300 font-medium text-sm">{user.username}</span>
             <button
               onClick={handleLogout}

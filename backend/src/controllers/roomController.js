@@ -68,4 +68,40 @@ const getRoom = async (req, res) => {
   }
 };
 
-module.exports = { createRoom, joinRoom, getRoom };
+// GET /api/rooms/history
+const getHistory = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const rooms = await Room.find({
+      status: 'finished',
+      'players.user': userId,
+    })
+      .sort({ finishedAt: -1 })
+      .limit(20);
+
+    const history = rooms.map((room) => {
+      const me       = room.players.find(p => String(p.user) === String(userId));
+      const opponent = room.players.find(p => String(p.user) !== String(userId));
+      const won      = String(room.winner) === String(userId);
+
+      return {
+        roomId:          room.roomId,
+        problem:         room.currentProblem,
+        outcome:         won ? 'win' : 'loss',
+        opponent:        opponent?.username || 'Unknown',
+        opponentHandle:  opponent?.codeforcesHandle || '',
+        finishedAt:      room.finishedAt,
+        ratingDelta:     won ? room.ratingDelta : -(room.ratingDelta || 0),
+        myRating:        won ? room.winnerNewRating : room.loserNewRating,
+      };
+    });
+
+    res.json({ history });
+  } catch (err) {
+    console.error('getHistory error:', err);
+    res.status(500).json({ message: 'Failed to fetch history' });
+  }
+};
+
+module.exports = { createRoom, joinRoom, getRoom , getHistory};

@@ -21,9 +21,12 @@ export default function ResultPage() {
           winner: d.winner,
           submissionTime: d.winnerSubmissionTime,
           problem: d.currentProblem,
+          ratingDelta: d.ratingDelta,         // add this
+          winnerNewRating: d.winnerNewRating, // add this
+          loserNewRating: d.loserNewRating,   // add this
         });
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [roomId, state]);
 
@@ -43,9 +46,8 @@ export default function ResultPage() {
         <div className={`text-7xl mb-4 ${isWinner ? '' : 'grayscale opacity-50'}`}>
           {isWinner ? '🏆' : '💀'}
         </div>
-        <h1 className={`text-5xl font-bold font-display mb-2 ${
-          isWinner ? 'text-green-400' : 'text-red-400'
-        }`}>
+        <h1 className={`text-5xl font-bold font-display mb-2 ${isWinner ? 'text-green-400' : 'text-red-400'
+          }`}>
           {isWinner ? 'You Won!' : 'You Lost'}
         </h1>
         <p className="text-gray-500 font-mono text-sm">
@@ -79,14 +81,34 @@ export default function ResultPage() {
       )}
 
       {/* Winner callout */}
-      <div className={`card mb-8 border ${
-        isWinner ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/20 bg-red-500/5'
-      }`}>
+      <div className={`card mb-8 border ${isWinner ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/20 bg-red-500/5'
+        }`}>
         <p className="text-xs text-gray-600 font-mono mb-1">WINNER</p>
         <p className={`text-2xl font-bold font-mono ${isWinner ? 'text-green-400' : 'text-red-400'}`}>
           {result?.winner || 'Unknown'}
         </p>
       </div>
+
+      {/* Rating change */}
+      {result?.ratingDelta && (
+        <div className="card mb-6 border border-white/5">
+          <p className="text-xs text-gray-600 font-mono mb-3 tracking-widest">RATING CHANGE</p>
+          <div className="flex justify-around">
+            <div className="text-center">
+              <p className={`text-3xl font-bold font-mono ${isWinner ? 'text-green-400' : 'text-red-400'}`}>
+                {isWinner ? `+${result.ratingDelta}` : `-${result.ratingDelta}`}
+              </p>
+              <p className="text-xs text-gray-500 font-mono mt-1">your delta</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-bold font-mono text-white">
+                {isWinner ? result.winnerNewRating : result.loserNewRating}
+              </p>
+              <p className="text-xs text-gray-500 font-mono mt-1">new rating</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-4 justify-center">

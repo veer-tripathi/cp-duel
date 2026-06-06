@@ -1,6 +1,6 @@
-const { getRecentSubmissions } = require('./codeforcesService');
-const Room = require('../models/Room');
-const User = require('../models/User');
+const { getRecentSubmissions } = require("./codeforcesService");
+const Room = require("../models/Room");
+const User = require("../models/User");
 
 // Active polling intervals: roomId -> intervalId
 const activePolls = new Map();
@@ -34,7 +34,7 @@ const startPolling = (roomId, problem, players, io, startedAt) => {
           if (subTime < startedAt) continue;
 
           if (
-            sub.verdict === 'OK' &&
+            sub.verdict === "OK" &&
             sub.problem.contestId === problem.contestId &&
             sub.problem.index === problem.index
           ) {
@@ -70,41 +70,74 @@ const stopPolling = (roomId) => {
 };
 
 // Handle winner: update DB, emit socket event
+// Calculate Elo rating delta
+const calcEloDelta = (winnerRating, loserRating) => {
+  const K = 32;
+  const expected = 1 / (1 + Math.pow(10, (loserRating - winnerRating) / 400));
+  return Math.round(K * (1 - expected));
+};
+
 const handleWinner = async (roomId, { player, subTime }, io) => {
   try {
-    const room = await Room.findOneAndUpdate(
-      { roomId, status: 'ongoing' },
+    const room = await Room.findOne({ roomId, status: "ongoing" });
+    if (!room) return;
+
+    // Identify winner and loser players from room
+    const winnerPlayer = room.players.find(
+      (p) => String(p.user) === String(player.userId)
+    );
+    const loserPlayer = room.players.find(
+      (p) => String(p.user) !== String(player.userId)
+    );
+
+    const winnerRating = winnerPlayer?.rating || 1200;
+    const loserRating = loserPlayer?.rating || 1200;
+    const delta = calcEloDelta(winnerRating, loserRating);
+
+    // Update room doc
+    // Update room doc
+    await Room.findOneAndUpdate(
+      { roomId, status: "ongoing" },
       {
-        status: 'finished',
+        status: "finished",
         winner: player.userId,
         winnerUsername: player.username,
         winnerSubmissionTime: subTime,
         finishedAt: new Date(),
-      },
-      { new: true }
+        ratingDelta: delta, // add this
+        winnerNewRating: winnerRating + delta, // add this
+        loserNewRating: Math.max(0, loserRating - delta), // add this
+      }
     );
 
-    if (!room) return; // Already finished
+    // Update winner: wins++, rating += delta
+    await User.findByIdAndUpdate(player.userId, {
+      $inc: { wins: 1, rating: delta },
+    });
 
-    // Update stats
-    await User.findByIdAndUpdate(player.userId, { $inc: { wins: 1 } });
-    for (const p of room.players) {
-      if (String(p.user) !== String(player.userId)) {
-        await User.findByIdAndUpdate(p.user, { $inc: { losses: 1 } });
-      }
+    // Update loser: losses++, rating -= delta (floor at 0)
+    if (loserPlayer) {
+      const newLoserRating = Math.max(0, loserRating - delta);
+      await User.findByIdAndUpdate(loserPlayer.user, {
+        $inc: { losses: 1 },
+        $set: { rating: newLoserRating },
+      });
     }
 
-    // Emit result to all players in the room
-    io.to(roomId).emit('gameResult', {
+    // Emit result with delta info
+    io.to(roomId).emit("gameResult", {
       winner: player.username,
       winnerHandle: player.codeforcesHandle,
       submissionTime: subTime,
       problem: room.currentProblem,
+      ratingDelta: delta, // winner gains this
+      winnerNewRating: winnerRating + delta,
+      loserNewRating: Math.max(0, loserRating - delta),
     });
 
-    console.log(`Winner found for room ${roomId}: ${player.username}`);
+    console.log(`Winner: ${player.username} | Δ +${delta}`);
   } catch (err) {
-    console.error('handleWinner error:', err.message);
+    console.error("handleWinner error:", err.message);
   }
 };
 

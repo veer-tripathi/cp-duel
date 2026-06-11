@@ -198,17 +198,3 @@ Create     Join (code)
 
 ---
 
-## Phase Roadmap (as per spec)
-
-- [x] Phase 1 — Backend: Express, MongoDB, Auth
-- [x] Phase 2 — Frontend: Auth pages, token handling, protected routes
-- [x] Phase 3 — Socket.IO: Room creation/join, real-time lobby
-- [x] Phase 4 — Codeforces API integration + problem generator
-- [x] Phase 5 — Submission polling, winner detection
-- [x] Phase 6 — UI (dark terminal aesthetic, Tailwind)
-
-**Future additions:**
-- [ ] Rating changes after duel
-- [ ] Match history page
-- [ ] Spectator mode
-- [ ] Rematch button (reuses same room)

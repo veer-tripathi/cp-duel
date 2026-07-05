@@ -12,6 +12,9 @@ const duelRoutes = require('./routes/duel');
 const app = express();
 const server = http.createServer(app);
 
+// Trust the first reverse proxy in production hosting environments.
+app.set('trust proxy', 1);
+
 // Connect to MongoDB
 connectDB();
 

@@ -5,6 +5,18 @@ const createRoom = async (req, res) => {
   try {
     const user = req.user;
 
+    const activeRoom = await Room.findOne({
+      'players.user': user._id,
+      status: { $in: ['waiting', 'ready', 'ongoing'] },
+    });
+
+    if (activeRoom) {
+      return res.status(409).json({
+        message: 'You already have an active room',
+        room: activeRoom,
+      });
+    }
+
     const room = await Room.create({
       host: user._id,
       players: [{

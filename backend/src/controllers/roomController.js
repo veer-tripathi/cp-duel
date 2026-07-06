@@ -1,9 +1,42 @@
 const Room = require('../models/Room');
 
+const LOBBY_ROOM_TTL_MS = 30 * 60 * 1000;
+const ONGOING_ROOM_TTL_MS = 2 * 60 * 60 * 1000;
+
+const cleanupAbandonedRooms = async () => {
+  const now = new Date();
+  const staleLobbyBefore = new Date(now.getTime() - LOBBY_ROOM_TTL_MS);
+  const staleOngoingBefore = new Date(now.getTime() - ONGOING_ROOM_TTL_MS);
+
+  await Room.updateMany(
+    {
+      status: { $in: ['waiting', 'ready'] },
+      updatedAt: { $lt: staleLobbyBefore },
+    },
+    {
+      status: 'abandoned',
+      abandonedAt: now,
+    }
+  );
+
+  await Room.updateMany(
+    {
+      status: 'ongoing',
+      startedAt: { $lt: staleOngoingBefore },
+    },
+    {
+      status: 'abandoned',
+      abandonedAt: now,
+    }
+  );
+};
+
 // POST /api/rooms/create
 const createRoom = async (req, res) => {
   try {
     const user = req.user;
+
+    await cleanupAbandonedRooms();
 
     const activeRoom = await Room.findOne({
       'players.user': user._id,
@@ -42,6 +75,8 @@ const joinRoom = async (req, res) => {
     const user = req.user;
 
     if (!roomId) return res.status(400).json({ message: 'roomId is required' });
+
+    await cleanupAbandonedRooms();
 
     const room = await Room.findOne({ roomId });
     if (!room) return res.status(404).json({ message: 'Room not found' });

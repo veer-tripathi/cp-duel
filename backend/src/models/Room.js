@@ -23,7 +23,7 @@ const roomSchema = new mongoose.Schema(
     ],
     status: {
       type: String,
-      enum: ["waiting", "ready", "ongoing", "finished"],
+      enum: ["waiting", "ready", "ongoing", "finished", "abandoned"],
       default: "waiting",
     },
     currentProblem: {
@@ -55,6 +55,7 @@ const roomSchema = new mongoose.Schema(
     },
     startedAt: Date,
     finishedAt: Date,
+    abandonedAt: Date,
   },
   { timestamps: true }
 );

@@ -4,6 +4,7 @@ const User = require("../models/User");
 
 // Active polling intervals: roomId -> intervalId
 const activePolls = new Map();
+const ONGOING_ROOM_TTL_MS = 2 * 60 * 60 * 1000;
 
 /**
  * Start polling both players' submissions for a given room.
@@ -25,6 +26,16 @@ const startPolling = (roomId, problem, players, io, startedAt) => {
 
   const intervalId = setInterval(async () => {
     try {
+      if (Date.now() - new Date(startedAt).getTime() > ONGOING_ROOM_TTL_MS) {
+        stopPolling(roomId);
+        await Room.findOneAndUpdate(
+          { roomId, status: "ongoing" },
+          { status: "abandoned", abandonedAt: new Date() }
+        );
+        if (io) io.to(roomId).emit("duelAbandoned", { roomId });
+        return;
+      }
+
       // Check each player's recent submissions in parallel
       const checks = players.map(async (player) => {
         const subs = await getRecentSubmissions(player.codeforcesHandle, 15);

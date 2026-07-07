@@ -80,23 +80,45 @@ const joinRoom = async (req, res) => {
 
     const room = await Room.findOne({ roomId });
     if (!room) return res.status(404).json({ message: 'Room not found' });
-    if (room.status !== 'waiting') return res.status(400).json({ message: 'Room is not open for joining' });
-    if (room.players.length >= 2) return res.status(400).json({ message: 'Room is full' });
 
     // Check if user is already in room
     const alreadyIn = room.players.some((p) => String(p.user) === String(user._id));
     if (alreadyIn) return res.json({ room }); // idempotent
 
-    room.players.push({
-      user: user._id,
-      username: user.username,
-      codeforcesHandle: user.codeforcesHandle,
-      rating: user.rating,
-    });
-    room.status = 'ready';
-    await room.save();
+    if (room.status !== 'waiting') return res.status(400).json({ message: 'Room is not open for joining' });
 
-    res.json({ room });
+    const updatedRoom = await Room.findOneAndUpdate(
+      {
+        roomId,
+        status: 'waiting',
+        'players.user': { $ne: user._id },
+        $expr: { $lt: [{ $size: '$players' }, 2] },
+      },
+      {
+        $push: {
+          players: {
+            user: user._id,
+            username: user.username,
+            codeforcesHandle: user.codeforcesHandle,
+            rating: user.rating,
+          },
+        },
+        $set: { status: 'ready' },
+      },
+      { new: true }
+    );
+
+    if (!updatedRoom) {
+      const latestRoom = await Room.findOne({ roomId });
+      if (!latestRoom) return res.status(404).json({ message: 'Room not found' });
+      if (latestRoom.players.some((p) => String(p.user) === String(user._id))) {
+        return res.json({ room: latestRoom });
+      }
+      if (latestRoom.players.length >= 2) return res.status(400).json({ message: 'Room is full' });
+      return res.status(400).json({ message: 'Room is not open for joining' });
+    }
+
+    res.json({ room: updatedRoom });
   } catch (err) {
     console.error('joinRoom error:', err);
     res.status(500).json({ message: 'Failed to join room' });

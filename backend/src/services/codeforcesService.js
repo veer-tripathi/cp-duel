@@ -33,7 +33,7 @@ const fetchProblems = async () => {
 // Fetch user's solved problems (AC submissions)
 const fetchSolvedProblems = async (handle) => {
   const res = await axios.get(`${CF_BASE}/user.status`, {
-    params: { handle, from: 1, count: 1000 },
+    params: { handle, from: 1, count: 5000 },
   });
   if (res.data.status !== 'OK') throw new Error(`CF API error for handle: ${handle}`);
 

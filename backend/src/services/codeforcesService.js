@@ -1,12 +1,33 @@
 const axios = require('axios');
 
 const CF_BASE = 'https://codeforces.com/api';
+const PROBLEM_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+let cachedProblems = null;
+let cachedProblemsAt = 0;
+let problemsFetchPromise = null;
 
 // Fetch all problems from Codeforces
 const fetchProblems = async () => {
-  const res = await axios.get(`${CF_BASE}/problemset.problems`);
-  if (res.data.status !== 'OK') throw new Error('Codeforces API error');
-  return res.data.result.problems;
+  const now = Date.now();
+  if (cachedProblems && now - cachedProblemsAt < PROBLEM_CACHE_TTL_MS) {
+    return cachedProblems;
+  }
+
+  if (!problemsFetchPromise) {
+    problemsFetchPromise = axios.get(`${CF_BASE}/problemset.problems`)
+      .then((res) => {
+        if (res.data.status !== 'OK') throw new Error('Codeforces API error');
+        cachedProblems = res.data.result.problems;
+        cachedProblemsAt = Date.now();
+        return cachedProblems;
+      })
+      .finally(() => {
+        problemsFetchPromise = null;
+      });
+  }
+
+  return problemsFetchPromise;
 };
 
 // Fetch user's solved problems (AC submissions)

@@ -56,7 +56,9 @@ const startPolling = (roomId, problem, players, io, startedAt) => {
       });
 
       const results = await Promise.all(checks);
-      const winner = results.find((r) => r !== null);
+      const winner = results
+        .filter(Boolean)
+        .sort((a, b) => a.subTime - b.subTime)[0];
 
       if (winner) {
         stopPolling(roomId);

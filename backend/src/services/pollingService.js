@@ -22,7 +22,7 @@ const startPolling = (roomId, problem, players, io, startedAt) => {
     return;
   }
 
-  const POLL_INTERVAL = 6000; // 6 seconds
+  const POLL_INTERVAL = 3000; // 6 seconds
 
   const intervalId = setInterval(async () => {
     try {
